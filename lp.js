@@ -50,7 +50,11 @@
         }
 
         function wrap(pred) {
-            if(typeof pred === "string") {
+            if(pred === null) {
+                return function() {
+                    return false;
+                };
+            } else if(typeof pred === "string") {
                 return function(lineNo, line, attr) {
                     return line === pred;
                 };
@@ -137,14 +141,20 @@
                 };
             },
 
-            block: function(predBegin, predEnd, action, actionBegin, actionEnd) {
+            ifElse: function(predBegin, predEnd, predElse, predElseIf, action, actionBegin, actionEnd, actionElse, actionElseIf) {
                 var id = {};
 
                 predBegin = wrap(predBegin);
                 predEnd = wrap(predEnd);
+                predElse = wrap(predElse);
+                predElseIf = wrap(predElseIf);
                 actionBegin = actionBegin ? actionBegin : action;
                 actionEnd = actionEnd ? actionEnd : action;
+                actionElse = actionElse ? actionElse : action;
+                actionElseIf = actionElseIf ? actionElseIf : action;
                 return function(lineNo, line, attr, state) {
+                    var selectedAction;
+
                     if(predBegin(lineNo, line, attr)) {
                         return {
                             attr: actionBegin(lineNo, line, attr),
@@ -163,8 +173,15 @@
                             }
                         }
                     } else if(getState(state, id)) {
+                        if(predElse(lineNo, line, attr)) {
+                            selectedAction = actionElse;
+                        } else if(predElseIf(lineNo, line, attr)) {
+                            selectedAction = actionElseIf;
+                        } else {
+                            selectedAction = action;
+                        }
                         return {
-                            attr: action(lineNo, line, attr),
+                            attr: selectedAction(lineNo, line, attr),
                             state: state
                         };
                     } else {
@@ -174,6 +191,10 @@
                         };
                     }
                 };
+            },
+
+            block: function(predBegin, predEnd, action, actionBegin, actionEnd) {
+                return me.ifElse(predBegin, predEnd, null, null, action, actionBegin, actionEnd, null, null);
             },
 
             execute: function(rules, initAttr, text, option) {

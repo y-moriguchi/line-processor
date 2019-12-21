@@ -22,6 +22,18 @@ text
 out of block
 `.trim();
 
+var text2 = `
+aaa
+#ifdef
+  aaaaa
+#elseif
+  aaaaa
+#else
+  aaaaa
+#endif
+aaa
+`.trim();
+
 describe("LP", function() {
     describe("test lp", function() {
         it("single match: regex", function() {
@@ -58,6 +70,18 @@ describe("LP", function() {
                 l.block("#ifdef", "#endif", (n, l, a) => a + l.length, (n, l, a) => a + l.length * 2, (n, l, a) => a + l.length / 2)
             ];
             expect(l.execute(rules, 0, text1)).toBe(75);
+        });
+
+        it("ifElse", function() {
+            var rules = [
+                l.ifElse("#ifdef", "#endif", "#else", "#elseif",
+                    (n, l, a) => a + l.length,
+                    (n, l, a) => a + l.length * 2,
+                    (n, l, a) => a + l.length * 3,
+                    (n, l, a) => a + l.length * 4,
+                    (n, l, a) => a + l.length * 5)
+            ];
+            expect(l.execute(rules, 0, text2)).toBe(106);
         });
 
         it("skip", function() {
