@@ -76,12 +76,26 @@
                 return attr;
             },
 
+            all: function(action) {
+                return function(lineNo, line, attr, state) {
+                    return {
+                        attr: action(lineNo, line, attr),
+                        state: state
+                    };
+                };
+            },
+
             single: function(pred, action) {
                 pred = wrap(pred);
                 return function(lineNo, line, attr, state) {
                     if(pred(lineNo, line, attr)) {
                         return {
                             attr: action(lineNo, line, attr),
+                            state: state
+                        };
+                    } else {
+                        return {
+                            attr: attr,
                             state: state
                         };
                     }
@@ -162,24 +176,34 @@
                 };
             },
 
-            execute: function(rules, initAttr, text) {
+            execute: function(rules, initAttr, text, option) {
                 var state = [],
                     attr = initAttr,
-                    lines = text.split(/\r\n|\r|\n/),
+                    lines = text.split(option && option.rs ? option.rs : /\r\n|\r|\n/),
+                    contLine = option && option.continueLine,
                     result,
+                    line = "",
                     i,
                     j;
 
                 for(i = 0; i < lines.length; i++) {
-                    for(j = 0; j < rules.length; j++) {
-                        result = rules[j](i + 1, lines[i], attr, state);
-                        state = result.state;
-                        if(result.attr instanceof Skip) {
-                            attr = result.attr.attr;
-                            break;
-                        } else {
-                            attr = result.attr;
+                    line += lines[i];
+                    if(contLine &&
+                            line.length > contLine.length &&
+                            line.substring(line.length - contLine.length, line.length) === contLine) {
+                        line = line.substring(0, line.length - contLine.length);
+                    } else {
+                        for(j = 0; j < rules.length; j++) {
+                            result = rules[j](i + 1, line, attr, state);
+                            state = result.state;
+                            if(result.attr instanceof Skip) {
+                                attr = result.attr.attr;
+                                break;
+                            } else {
+                                attr = result.attr;
+                            }
                         }
+                        line = "";
                     }
                 }
                 return attr;
