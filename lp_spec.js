@@ -1,3 +1,6 @@
+/*
+ * This source code is under the Unlicense
+ */
 var l = LP();
 var text1 = `
 This is a text.

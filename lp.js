@@ -1,3 +1,6 @@
+/*
+ * This source code is under the Unlicense
+ */
 (function(root) {
     function LP() {
         var me;
