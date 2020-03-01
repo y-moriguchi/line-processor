@@ -2,6 +2,10 @@
  * This source code is under the Unlicense
  */
 (function(root) {
+    function isArray(obj) {
+        return Object.prototype.toString.call(obj) === '[object Array]';
+    }
+
     function LP() {
         var me;
 
@@ -203,15 +207,28 @@
             execute: function(rules, initAttr, text, option) {
                 var state = [],
                     attr = initAttr,
-                    lines = text.split(option && option.rs ? option.rs : /\r\n|\r|\n/),
+                    lines = typeof text === "string" ? textFunction(text) : isArray(text) ? arrayFunction(text) : text,
                     contLine = option && option.continueLine,
                     result,
+                    oneline,
                     line = "",
                     i,
                     j;
 
-                for(i = 0; i < lines.length; i++) {
-                    line += lines[i];
+                function arrayFunction(lines) {
+                    var count = 0;
+
+                    return function() {
+                        return count < lines.length ? lines[count++] : null;
+                    }
+                }
+
+                function textFunction(text) {
+                    return arrayFunction(text.split(option && option.rs ? option.rs : /\r\n|\r|\n/));
+                }
+                        
+                for(i = 0; (oneline = lines()) !== null; i++) {
+                    line += oneline;
                     if(contLine &&
                             line.length > contLine.length &&
                             line.substring(line.length - contLine.length, line.length) === contLine) {
