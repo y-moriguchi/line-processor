@@ -204,16 +204,44 @@
                 return me.ifElse(predBegin, predEnd, null, null, action, actionBegin, actionEnd, null, null);
             },
 
-            execute: function(rules, initAttr, text, option) {
+            getExecuter: function(rules, option) {
                 var state = [],
+                    contLine = option && option.continueLine,
+                    line = "",
+                    lineNo = 0;
+
+                return function(oneline, attr) {
+                    var result,
+                        j;
+
+                    line += oneline;
+                    if(contLine &&
+                            line.length > contLine.length &&
+                            line.substring(line.length - contLine.length, line.length) === contLine) {
+                        line = line.substring(0, line.length - contLine.length);
+                    } else {
+                        for(j = 0; j < rules.length; j++) {
+                            result = rules[j](lineNo + 1, line, attr, state);
+                            state = result.state;
+                            if(result.attr instanceof Skip) {
+                                attr = result.attr.attr;
+                                break;
+                            } else {
+                                attr = result.attr;
+                            }
+                        }
+                        line = "";
+                    }
+                    lineNo++;
+                    return attr;
+                }
+            },
+
+            execute: function(rules, initAttr, text, option) {
+                var executer = me.getExecuter(rules, option),
                     attr = initAttr,
                     lines = typeof text === "string" ? textFunction(text) : isArray(text) ? arrayFunction(text) : text,
-                    contLine = option && option.continueLine,
-                    result,
-                    oneline,
-                    line = "",
-                    i,
-                    j;
+                    oneline;
 
                 function arrayFunction(lines) {
                     var count = 0;
@@ -226,26 +254,9 @@
                 function textFunction(text) {
                     return arrayFunction(text.split(option && option.rs ? option.rs : /\r\n|\r|\n/));
                 }
-                        
+
                 for(i = 0; (oneline = lines()) !== null; i++) {
-                    line += oneline;
-                    if(contLine &&
-                            line.length > contLine.length &&
-                            line.substring(line.length - contLine.length, line.length) === contLine) {
-                        line = line.substring(0, line.length - contLine.length);
-                    } else {
-                        for(j = 0; j < rules.length; j++) {
-                            result = rules[j](i + 1, line, attr, state);
-                            state = result.state;
-                            if(result.attr instanceof Skip) {
-                                attr = result.attr.attr;
-                                break;
-                            } else {
-                                attr = result.attr;
-                            }
-                        }
-                        line = "";
-                    }
+                    attr = executer(oneline, attr);
                 }
                 return attr;
             }
